@@ -44,8 +44,6 @@ class HakamMultiTenancyExtension extends Extension implements PrependExtensionIn
         if (5 === count($dbSwitcherConfig)) {
             $bundles = $container->getParameter('kernel.bundles');
 
-            $this->checkDir($container->getParameter('kernel.project_dir'), $dbSwitcherConfig['tenant_entity_manager']['mapping']['dir']);
-
             $tenantConnectionConfig = [
                 'connections' => [
                     'tenant' => [
@@ -59,20 +57,21 @@ class HakamMultiTenancyExtension extends Extension implements PrependExtensionIn
                     ],
                 ],
             ];
+
+            $entityManagerMappings = $dbSwitcherConfig['tenant_entity_manager']['mappings'];
+            $tmpMappings = [ ];
+            foreach ($entityManagerMappings as $name => $mapping) {
+                $this->checkDir($container->getParameter('kernel.project_dir'), $mapping['dir']);
+                $tmpMappings["HakamMultiTenancyBundle$name"] = $mapping; // add prefix to each name just in case
+            }
+            $entityManagerMappings = $tmpMappings;
+
             $tenantEntityManagerConfig = [
                 'entity_managers' => [
                     'tenant' => [
                         'connection' => 'tenant',
                         'naming_strategy' => $dbSwitcherConfig['tenant_entity_manager']['tenant_naming_strategy'],
-                        'mappings' => [
-                            'HakamMultiTenancyBundle' => [
-                                'type' => $dbSwitcherConfig['tenant_entity_manager']['mapping']['type'],
-                                'dir' => $dbSwitcherConfig['tenant_entity_manager']['mapping']['dir'],
-                                'prefix' => $dbSwitcherConfig['tenant_entity_manager']['mapping']['prefix'] ?? null,
-                                'alias' => $dbSwitcherConfig['tenant_entity_manager']['mapping']['alias'] ?? null,
-                                'is_bundle' => $dbSwitcherConfig['tenant_entity_manager']['mapping']['is_bundle'] ?? true,
-                            ],
-                        ],
+                        'mappings' => $entityManagerMappings,
                     ],
                 ],
             ];
